@@ -132,14 +132,16 @@
                             </div>
 
                             <aside class="rounded-lg border border-blue-100 bg-blue-50 p-4">
-                                <h4 class="text-sm font-semibold text-blue-950">Setup Steps</h4>
-                                <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm text-blue-950">
+                                <h4 class="text-sm font-semibold text-blue-950">Detailed Setup Steps</h4>
+                                <p class="mt-1 text-xs font-medium text-blue-800">Follow these in order. Source links below open in a new tab.</p>
+                                <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-blue-950">
                                     @foreach(($provider['instructions'] ?? []) as $instruction)
                                         <li>{{ $instruction }}</li>
                                     @endforeach
                                 </ol>
                                 @if(!empty($provider['docs']))
-                                    <div class="mt-4 flex flex-wrap gap-2">
+                                    <h5 class="mt-5 text-xs font-black uppercase tracking-wide text-blue-900">Official Links</h5>
+                                    <div class="mt-2 flex flex-wrap gap-2">
                                         @foreach($provider['docs'] as $doc)
                                             <a href="{{ $doc['url'] }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 ring-1 ring-blue-200 hover:bg-blue-100">
                                                 {{ $doc['label'] }} <span aria-hidden="true">↗</span>
