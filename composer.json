@@ -1,0 +1,24 @@
+{
+    "name": "hexawebsystems/laravel-hexa-package-smp-wordpress-tts",
+    "description": "Scale My Publication WordPress text-to-speech credential, detection, and integrity dashboard.",
+    "type": "library",
+    "version": "0.1.0",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "hexa_package_smp_wordpress_tts\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "hexa_package_smp_wordpress_tts\\Providers\\SmpWordPressTtsServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
