@@ -61,6 +61,39 @@
         <div class="tts-panel"><div class="tts-panel-body"><div class="tts-copy">Scanned</div><div class="text-2xl font-black text-gray-900" x-text="results.length"></div></div></div>
     </div>
 
+    <section class="tts-panel" x-data="smpTtsRealtime()" x-init="init()">
+        <div class="tts-panel-head">
+            <div><div class="tts-title">Realtime Requests</div><div class="tts-copy">Polls every five seconds for active processing and recent request history. No page refresh required.</div></div>
+            <button type="button" class="tts-btn" @click="load()">Refresh now</button>
+        </div>
+        <div class="tts-panel-body">
+            <div class="grid gap-3 md:grid-cols-3 mb-4">
+                <div class="tts-panel"><div class="tts-panel-body"><div class="tts-copy">Active now</div><div class="text-2xl font-black text-gray-900" x-text="active.length"></div></div></div>
+                <div class="tts-panel"><div class="tts-panel-body"><div class="tts-copy">Recent requests</div><div class="text-2xl font-black text-gray-900" x-text="requests.length"></div></div></div>
+                <div class="tts-panel"><div class="tts-panel-body"><div class="tts-copy">Last poll</div><div class="text-sm font-black text-gray-900" x-text="lastPoll || "Not yet""></div></div></div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="tts-table">
+                    <thead><tr><th>Status</th><th>Site / Article</th><th>User</th><th>Provider</th><th>Audio</th><th>Cost</th><th>Time EST</th></tr></thead>
+                    <tbody>
+                        <template x-for="row in requests" :key="row.id">
+                            <tr>
+                                <td><span class="tts-badge" :class="row.status === "complete" ? "tts-ok" : (row.status === "failed" ? "tts-bad" : "tts-warn")" x-text="row.status"></span><div class="tts-meta" x-text="row.message || row.id"></div></td>
+                                <td><div class="tts-name" x-text="row.site || "unknown site""></div><a class="tts-meta" :href="row.article_url" target="_blank" rel="noopener" x-text="row.article_url || "no article URL""></a></td>
+                                <td><div class="tts-meta" x-text="row.user || "unknown""></div><div class="tts-meta" x-text="row.post_id ? "post " + row.post_id : """></div></td>
+                                <td><div class="tts-name" x-text="row.provider || """></div><div class="tts-meta" x-text="row.provider_key_last4 ? "key ..." + row.provider_key_last4 : """></div></td>
+                                <td><a class="tts-meta" :href="row.audio_url" target="_blank" rel="noopener" x-text="row.audio_bytes ? row.audio_bytes + " bytes" : "pending""></a></td>
+                                <td><div class="tts-meta" x-text="row.cost_usd === null ? "pending" : "$" + Number(row.cost_usd).toFixed(6)"></div></td>
+                                <td><div class="tts-meta" x-text="row.created_at_est || row.created_at || """></div></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+
     <div class="tts-grid">
         <div class="space-y-4">
             <section class="tts-panel">
@@ -216,6 +249,30 @@
 
 @push('scripts')
 <script>
+
+function smpTtsRealtime() {
+    return {
+        url: @json($requestPollUrl),
+        active: [],
+        requests: [],
+        lastPoll: "",
+        timer: null,
+        init() {
+            this.load();
+            this.timer = window.setInterval(() => this.load(), 5000);
+        },
+        async load() {
+            const response = await fetch(this.url, {headers: {"Accept": "application/json", "X-Requested-With": "XMLHttpRequest"}});
+            const data = await response.json();
+            if (data && data.success) {
+                this.active = data.active || [];
+                this.requests = data.requests || [];
+                this.lastPoll = new Date().toLocaleTimeString();
+            }
+        },
+    };
+}
+
 function smpWordPressTtsDashboard() {
     return {
         servers: @json($servers),

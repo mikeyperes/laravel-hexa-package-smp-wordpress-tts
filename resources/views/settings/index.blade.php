@@ -22,6 +22,44 @@
         <div class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">{{ session('status') }}</div>
     @endif
 
+
+    <section class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm" x-data="smpTtsProviderKeyring()">
+        <div class="mb-5 flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">UnrealSpeech API Keys</h2>
+                <p class="mt-1 text-sm text-gray-500">Named repeater-style keyring. Add multiple keys, test each one, and choose the active/default key used by the central Publish Scale API.</p>
+            </div>
+            <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700" x-text="keys.length + " key(s)""></span>
+        </div>
+        <div class="space-y-3">
+            <template x-for="key in keys" :key="key.id">
+                <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <div class="text-sm font-bold text-gray-900" x-text="key.name"></div>
+                            <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500"><span class="font-mono" x-text="key.masked_key"></span><span x-show="key.is_active" class="rounded-full bg-green-100 px-2 py-0.5 font-semibold text-green-700">Active</span></div>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700" @click="testKey(key.id)">Test Key</button>
+                            <button type="button" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700" @click="setActive(key.id)" :disabled="key.is_active">Set Active</button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+            <div x-show="!keys.length" class="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">No UnrealSpeech keys stored yet.</div>
+        </div>
+        <div class="mt-5 grid gap-4 md:grid-cols-2">
+            <label class="block"><span class="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-500">Key Name</span><input type="text" x-model="newName" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="michael@mike-ro-tech.com"></label>
+            <label class="block"><span class="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-500">API Key</span><input type="password" x-model="newKey" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono" placeholder="Paste UnrealSpeech key"></label>
+        </div>
+        <div class="mt-4 flex flex-wrap items-center gap-3">
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" x-model="makeActive" class="rounded border-gray-300 text-blue-600"><span>Make active after adding</span></label>
+            <button type="button" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white" @click="addKey()">Add Key</button>
+            <button type="button" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700" @click="testDraft()">Test Unsaved Key</button>
+        </div>
+        <div x-show="message" class="mt-4 rounded-lg border px-4 py-3 text-sm" :class="ok ? "border-green-200 bg-green-50 text-green-800" : "border-red-200 bg-red-50 text-red-800"" x-text="message"></div>
+    </section>
+
     <form method="post" action="{{ route('smp-wordpress-tts.settings.save') }}" class="space-y-6">
         @csrf
 
@@ -162,3 +200,62 @@
     </form>
 </div>
 @endsection
+
+@push("scripts")
+<script>
+function smpTtsProviderKeyring() {
+    return {
+        keys: @js($unrealKeys),
+        newName: "",
+        newKey: "",
+        makeActive: true,
+        message: "",
+        ok: true,
+        urls: {
+            add: @js(route("smp-wordpress-tts.provider-keys.add", ["provider" => "unrealspeech"])),
+            test: @js(route("smp-wordpress-tts.provider-keys.test", ["provider" => "unrealspeech"])),
+            active: @js(route("smp-wordpress-tts.provider-keys.active", ["provider" => "unrealspeech"])),
+        },
+        headers() {
+            return {"Accept": "application/json", "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest", "X-CSRF-TOKEN": document.querySelector("meta[name=csrf-token]")?.content || ""};
+        },
+        async read(response) {
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || data.success === false) throw new Error(data.message || "Request failed");
+            return data;
+        },
+        async addKey() {
+            try {
+                const data = await this.read(await fetch(this.urls.add, {method: "POST", headers: this.headers(), body: JSON.stringify({name: this.newName, api_key: this.newKey, make_active: this.makeActive})}));
+                this.keys = data.keys || this.keys;
+                this.newKey = "";
+                this.message = "Key added.";
+                this.ok = true;
+            } catch (error) { this.message = error.message; this.ok = false; }
+        },
+        async testDraft() {
+            try {
+                const data = await this.read(await fetch(this.urls.test, {method: "POST", headers: this.headers(), body: JSON.stringify({api_key: this.newKey})}));
+                this.message = data.message || "Key tested.";
+                this.ok = !!data.success;
+            } catch (error) { this.message = error.message; this.ok = false; }
+        },
+        async testKey(id) {
+            try {
+                const data = await this.read(await fetch(this.urls.test, {method: "POST", headers: this.headers(), body: JSON.stringify({key_id: id})}));
+                this.message = data.message || "Key tested.";
+                this.ok = !!data.success;
+            } catch (error) { this.message = error.message; this.ok = false; }
+        },
+        async setActive(id) {
+            try {
+                const data = await this.read(await fetch(this.urls.active, {method: "POST", headers: this.headers(), body: JSON.stringify({key_id: id})}));
+                this.keys = data.keys || this.keys;
+                this.message = data.message || "Active key updated.";
+                this.ok = true;
+            } catch (error) { this.message = error.message; this.ok = false; }
+        },
+    };
+}
+</script>
+@endpush

@@ -2,7 +2,7 @@
     "name": "hexawebsystems/laravel-hexa-package-smp-wordpress-text-to-speech",
     "description": "Scale My Publication WordPress text-to-speech credential, detection, and integrity dashboard.",
     "type": "library",
-    "version": "0.1.2",
+    "version": "0.2.0",
     "license": "proprietary",
     "require": {
         "php": "^8.2"
